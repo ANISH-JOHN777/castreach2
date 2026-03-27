@@ -1,0 +1,263 @@
+// CastReach Database Schema
+// Using Prisma ORM for type-safe database access
+
+datasource db {
+  provider = "postgresql" // or "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============ User Models ============
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String
+  role          UserRole   @default(CREATOR)
+  profileImage  String?
+  bio           String?
+  
+  // Relations
+  uploads       Upload[]
+  analytics     Analytics[]
+  subscriptions Subscription[]
+  applications  Application[]
+  brands        Brand[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  CREATOR
+  BRAND
+  ADMIN
+}
+
+// ============ Podcast/Upload Models ============
+
+model Upload {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title         String
+  description   String?
+  mediaUrl      String
+  type          ContentType
+  status        UploadStatus  @default(PENDING)
+  duration      Int? // duration in seconds
+  thumbnail     String?
+  
+  // Relations
+  aiOutput      AIOutput?
+  analytics     Analytics[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+
+enum ContentType {
+  AUDIO
+  VIDEO
+}
+
+enum UploadStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ============ AI Processing Models ============
+
+model AIOutput {
+  id              String   @id @default(cuid())
+  uploadId        String   @unique
+  upload          Upload   @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  
+  transcript      String   @db.Text
+  summary         String   @db.Text
+  keyHighlights   String[]
+  hashtags        String[]
+  
+  // Relations for complex types stored as JSON
+  captions        Caption[]
+  socialPosts     SocialPost[]
+  clipSuggestions ClipSuggestion[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Caption {
+  id        String   @id @default(cuid())
+  aiId      String
+  aiOutput  AIOutput @relation(fields: [aiId], references: [id], onDelete: Cascade)
+  
+  text      String
+  startTime Int
+  endTime   Int
+}
+
+model SocialPost {
+  id        String   @id @default(cuid())
+  aiId      String
+  aiOutput  AIOutput @relation(fields: [aiId], references: [id], onDelete: Cascade)
+  
+  platform  String
+  content   String   @db.Text
+  hashtags  String[]
+}
+
+model ClipSuggestion {
+  id        String   @id @default(cuid())
+  aiId      String
+  aiOutput  AIOutput @relation(fields: [aiId], references: [id], onDelete: Cascade)
+  
+  startTime Int
+  endTime   Int
+  title     String
+  reason    String
+}
+
+// ============ Analytics Models ============
+
+model Analytics {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  uploadId String?
+  upload   Upload?  @relation(fields: [uploadId], references: [id], onDelete: SetNull)
+  
+  views       Int    @default(0)
+  engagement  Int    @default(0)
+  shares      Int    @default(0)
+  
+  platformBreakdown Json? // Store as JSON: { "youtube": {...}, "spotify": {...} }
+  
+  createdAt DateTime @default(now())
+  
+  @@index([userId])
+  @@index([uploadId])
+}
+
+// ============ Brand & Marketplace Models ============
+
+model Brand {
+  id          String     @id @default(cuid())
+  ownerId     String
+  owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  name        String
+  logo        String?
+  description String     @db.Text
+  industry    String
+  website     String?
+  
+  // Relations
+  campaigns   Campaign[]
+  applications Application[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([ownerId])
+}
+
+model Campaign {
+  id              String      @id @default(cuid())
+  brandId         String
+  brand           Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  
+  title           String
+  description     String      @db.Text
+  budget          Float
+  targetAudience  String
+  requirements    String[]
+  deadline        DateTime
+  status          CampaignStatus @default(ACTIVE)
+  
+  // Relations
+  applications    Application[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([brandId])
+  @@index([status])
+}
+
+enum CampaignStatus {
+  ACTIVE
+  CLOSED
+  COMPLETED
+}
+
+model Application {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  campaignId String
+  campaign   Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  brandId    String
+  brand      Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  
+  status     ApplicationStatus @default(PENDING)
+  pitch      String    @db.Text
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, campaignId])
+  @@index([userId])
+  @@index([campaignId])
+  @@index([status])
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+}
+
+// ============ Subscription Models ============
+
+model Subscription {
+  id                  String     @id @default(cuid())
+  userId              String     @unique
+  user                User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  plan                PlanType   @default(FREE)
+  status              SubStatus  @default(ACTIVE)
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  stripeCustomerId    String?
+  stripeSubscriptionId String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PlanType {
+  FREE
+  PRO
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
