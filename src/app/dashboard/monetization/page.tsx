@@ -8,9 +8,9 @@ import { Card, Button, Badge } from '@/components/common';
 
 export default function MonetizationPage() {
   const { data: session, status } = useSession();
-  const [subscription, setSubscription] = useState(null);
+  const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   if (status === 'loading') {
     return <div>Loading...</div>;

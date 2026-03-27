@@ -9,7 +9,7 @@ import { Card } from '@/components/common';
 
 export default function AnalyticsPage() {
   const { data: session, status } = useSession();
-  const [analytics, setAnalytics] = useState(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   if (status === 'loading') {

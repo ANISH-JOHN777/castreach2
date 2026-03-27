@@ -37,16 +37,28 @@ export async function getUserByEmail(email: string) {
 export async function createUser(data: {
   email: string;
   name: string;
-  role: 'creator' | 'brand' | 'admin';
+  role?: 'creator' | 'brand' | 'admin' | 'CREATOR' | 'BRAND' | 'ADMIN';
   profileImage?: string;
 }) {
+  const roleMap: Record<string, 'CREATOR' | 'BRAND' | 'ADMIN'> = {
+    'creator': 'CREATOR',
+    'brand': 'BRAND',
+    'admin': 'ADMIN',
+    'CREATOR': 'CREATOR',
+    'BRAND': 'BRAND',
+    'ADMIN': 'ADMIN'
+  };
+
   return prisma.user.create({
     data: {
-      ...data,
+      email: data.email,
+      name: data.name,
+      role: roleMap[data.role || 'creator'] as any,
+      profileImage: data.profileImage,
       subscriptions: {
         create: {
-          plan: 'FREE',
-          status: 'ACTIVE',
+          plan: 'FREE' as any,
+          status: 'ACTIVE' as any,
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year
         }

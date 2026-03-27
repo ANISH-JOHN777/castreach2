@@ -10,11 +10,11 @@ import { ApplicationForm } from '@/components/marketplace';
 
 export default function MarketplacePage() {
   const { data: session, status } = useSession();
-  const [campaigns, setCampaigns] = useState([]);
-  const [applications, setApplications] = useState([]);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'campaigns' | 'applications'>('campaigns');
 
   if (status === 'loading') {
@@ -58,6 +58,8 @@ export default function MarketplacePage() {
   };
 
   const handleSubmitApplication = async (pitch: string) => {
+    if (!selectedCampaign) return;
+    
     try {
       const response = await fetch('/api/marketplace', {
         method: 'POST',
