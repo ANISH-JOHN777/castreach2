@@ -1,0 +1,17 @@
+# Vercel Build Ignore Files
+.git
+.gitignore
+node_modules
+.next
+.env.local
+.env.*.local
+dev-server.log
+build.log
+build-final.log
+*.log
+.DS_Store
+Thumbs.db
+README.md
+SETUP.md
+DEPLOYMENT.md
+PROJECT_SUMMARY.md
